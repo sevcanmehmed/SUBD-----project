@@ -1,0 +1,55 @@
+SET SCHEMA FN71981;
+
+CREATE PROCEDURE FLIGHT_INFORMATION(in v_airportname varchar(50))
+RESULT SETS 1
+    LANGUAGE SQL
+    P1: BEGIN
+        DECLARE C1 CURSOR WITH RETURN FOR
+            SELECT AIRPORTNAMEDEPT, DURATION, AIRPORTNAMEARRIVAL
+                FROM FLIGHTS
+                    WHERE AIRPORTNAMEDEPT = v_airportname;
+        OPEN C1;
+    END P1;
+
+CREATE OR REPLACE PROCEDURE MOST_COMMON_AIRLINE(OUT v_airlines_name VARCHAR(50))
+BEGIN
+       DECLARE more_than_one_row CONDITION FOR SQLSTATE '21000';
+       DECLARE CONTINUE HANDLER FOR more_than_one_row
+       INSERT INTO WARNING_MSG(MSG) VALUES ('More than one row exist');
+       CALL DBMS_OUTPUT.PUT_LINE('More than one row exist');
+
+    SELECT  AIRLINESNAME INTO v_airlines_name
+    FROM    FLIGHTS
+    GROUP BY AIRLINESNAME
+    ORDER BY COUNT(*) DESC
+    FETCH FIRST 1 ROW ONLY;
+END;
+
+
+CREATE OR REPLACE PROCEDURE HOW_MANY_AIRPORTS_HAVE_COUNTRIES(IN v_country_name VARCHAR(50), OUT v_cnt_airports INT)
+BEGIN
+     DECLARE cnt INT DEFAULT 0;
+     DECLARE table_row ANCHOR ROW FN71981.DESTINATIONS;
+     DECLARE end_table INT DEFAULT 0;
+
+     DECLARE not_found CONDITION FOR SQLSTATE '02000';
+
+      DECLARE C1 CURSOR FOR
+      SELECT * FROM DESTINATIONS
+      WHERE COUNTRY = v_country_name;
+
+     DECLARE CONTINUE HANDLER FOR not_found
+     SET end_table = 1;
+
+    OPEN C1;
+    FETCH C1 INTO table_row;
+
+    WHILE end_table = 0 DO
+    SET cnt = cnt + 1;
+    FETCH C1 INTO table_row;
+    END WHILE;
+
+    SET v_cnt_airports = cnt;
+END;
+
+
